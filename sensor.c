@@ -1,13 +1,15 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include<sys/shm.h>
-#include<pthread.h>
-#include<time.h>
-#include<unistd.h>
-#include<signal.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <string.h>
+#include <time.h>
+#include <pthread.h>
+#include <signal.h>
+pthread_mutex_t lock;
 
 typedef struct ecu_sensor{
-	float engine_temp; //random 80 - 100 degree avg
+	float engine_temp; //random
 	float engine_speed; //random
 	int obstacle_detector; // 0/1
 	int gear_pos; //1-6
@@ -30,52 +32,74 @@ typedef struct ecu_control{
 	
 }ecu_control;
 
-volatile int car_status = 1; //ON
-
-ecu_sensor sensor = {0.0,0.0,0,0,100.0,0,0,0,0};
-ecu_control control = {0,0,0,0,0,0,0,0,0};
+ecu_sensor sensor;
+ecu_control control;
+ecu_sensor* shm1;
 
 void* engine_handler(void* arg)
 {
-while(car_status){
-	sensor.engine_temp = 80+ rand() % 21; //80 - 100
-	sensor.engine_speed = 20 + rand() % 81; // 20 - 100
-	sensor.gear_pos = 1 + rand() % 6; // 1-6
-	sleep(1);
-	printf("Temp: %f Speed: %f Gear: %d Fuel: %f\n", sensor.engine_temp, sensor.engine_speed, sensor.gear_pos, 	sensor.fuel_level);
-}
-pthread_exit(NULL);
+	while(control.ignition){
+		pthread_mutex_lock(&lock);
+		sensor.engine_temp = 80+ rand() % 21; //80 - 100
+		sensor.engine_speed = 20 + rand() % 81; // 20 - 100
+		sensor.gear_pos = 1 + rand() % 6; // 1-6		
+		printf("Temp: %f Speed: %f Gear: %d Fuel: %f\n", sensor.engine_temp, sensor.engine_speed, sensor.gear_pos, 	sensor.fuel_level);
+		memcpy(shm1, &sensor, sizeof(ecu_sensor));
+		pthread_mutex_unlock(&lock);
+		sleep(2);
+	}
+	pthread_exit(NULL);
 }
 
 void car_status_handler(int sig){
-if(sig==SIGUSR1){
-car_status = 0;
-}
+	if(sig==SIGUSR1){
+		control.ignition = 0;
+	}
 }
 
 int main()
 {
-printf("Process ID: %d\n",getpid());
-srand(time(NULL));
-signal(SIGUSR1,car_status_handler);
+	control.ignition = 1;
+	srand(time(NULL));		
+ 	
+    	signal(SIGUSR1,car_status_handler);
+    	
+    	pthread_mutex_init(&lock,NULL);
+ 	printf("Process ID: %d\n",getpid());
+ 	
+ 	key_t key1 = 2345;
+ 	key_t key2 = 5678; 	
+ 	
+    	int shmid1 = shmget(key1, 1024, 0666 | IPC_CREAT);
+    	if (shmid1 == -1) {
+        	perror("shmget failed");
+        	exit(1);
+    	}
+    	printf("shmid of shared memory is %d\n", shmid1);    	
+    	shm1 = shmat(shmid1, NULL, 0);
+    	if (shm1 == (ecu_sensor *)-1) {
+        	perror("shmat failed");
+        	exit(1);
+    	}
+    		
+    	int shmid2 = shmget(key2, 1024, 0666 | IPC_CREAT);
+    	if (shmid2 == -1) {
+        	perror("shmget failed");
+        	exit(1);
+    	}
+    	printf("shmid of shared memory is %d\n", shmid1);    	
+    	ecu_control* shm2 = shmat(shmid2, NULL, 0);
+    	if (shm2 == (ecu_control *)-1) {
+        	perror("shmat failed");
+        	exit(1);
+    	}
+    	memcpy(shm2, &control, sizeof(ecu_control));
+    	 	
+	pthread_t engine_temp;
+	
+	pthread_create(&engine_temp, NULL, engine_handler, NULL);
 
-pthread_t engine_temp, engine_speed, obstacle_detector,gear_pos, fuel_level, seatbelt, inside_temp, crash, lowlight;
-pthread_create(&engine_temp, NULL, engine_handler, NULL);
-pthread_create(&engine_speed, NULL, engine_handler, NULL);
-pthread_create(&gear_pos, NULL, engine_handler, NULL);
-pthread_create(&fuel_level, NULL, engine_handler, NULL); 
-
-
-while(car_status){
-sleep(1);
-}
-
-pthread_join(engine_temp, NULL);
-pthread_join(engine_speed, NULL);
-pthread_join(gear_pos, NULL);
-pthread_join(fuel_level, NULL);
-
-
-printf("Hello this is sensor file\n");
+	pthread_join(engine_temp, NULL);
+	
 return 0;
 }
