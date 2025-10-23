@@ -4,19 +4,42 @@
 #include<signal.h>
 
 int main(){
-pid_t car_pid;
-printf("Enter Car PID: ");
-scanf("%d",&car_pid);
-int status;
-printf("Press 1 to turn ON: ");
-scanf("%d",&status);
-if(status==1){
-kill(car_pid,SIGUSR1);
-}
-printf("Press 0 to turn OFF: ");
-scanf("%d",&status);
-if(status==0){
-kill(car_pid,SIGUSR2);
-}
-return 0;
+    printf("--- Control Panel Process ---\n");
+    
+    pid_t car_pid;
+    int status;
+    
+    printf("Enter Car PID (Process ID): ");
+    if(scanf("%d",&car_pid) != 1 || car_pid <= 0){
+        fprintf(stderr, "Invalid PID entered.\n");
+        return 1;
+    }
+    
+    printf("\nPress 1 to turn ON ignition: ");
+    if(scanf("%d",&status) == 1 && status == 1){
+        if(kill(car_pid, SIGUSR1) == 0){
+            printf("Sent SIGUSR1 to PID %d (Ignition ON).\n", car_pid);
+        } else {
+            perror("Error sending SIGUSR1");
+            return 1;
+        }
+    } else {
+        printf("Ignition not turned ON. Exiting.\n");
+        return 0;
+    }
+    
+    printf("\nPress 0 to turn OFF ignition and exit: ");
+    if(scanf("%d",&status) == 1 && status == 0){
+        if(kill(car_pid, SIGUSR2) == 0){
+            printf("Sent SIGUSR2 to PID %d (Ignition OFF).\n", car_pid);
+        } else {
+            perror("Error sending SIGUSR2");
+            return 1;
+        }
+    } else {
+        printf("Ignition remains ON. Exiting control panel.\n");
+    }
+    
+    printf("--- Control Panel Exiting ---\n");
+    return 0;
 }
