@@ -1,5 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<sys/shm.h>
+#include<pthread.h>
+#include<time.h>
+#include<unistd.h>
+#include<signal.h>
 
 typedef struct ecu_sensor{
 	float engine_temp; //random
@@ -31,5 +36,9 @@ ecu_control control;
 int main()
 {
 printf("Hello this is subsystem file\n");
+pid_t pid;
+printf("Enter process id: ");
+scanf("%d",&pid);
+kill(pid,SIGUSR1);
 return 0;
 }
