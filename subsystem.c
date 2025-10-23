@@ -3,73 +3,84 @@
 #include <unistd.h>
 #include <sys/shm.h>
 #include <string.h>
+#include <time.h>
+#include <pthread.h>
+#include <signal.h>
 
 typedef struct ecu_sensor{
-    float engine_temp; //random
-    float engine_speed; //random
-    int obstacle_detector; // 0/1
-    int gear_pos; //1-6
-    float fuel_level; //0 to 100
-    int seatbelt; //0 or 1
-    int inside_temp; //0 to 100
-    int crash; //0 or 1
-    int lowlight; //0 or 1
+	float engine_temp; //random
+	float engine_speed; //random
+	int obstacle_detector; // 0/1
+	int gear_pos; //1-6
+	float fuel_level; //0 to 100
+	int seatbelt; //0 or 1
+	int inside_temp; //0 to 100
+	int crash; //0 or 1
+	int lowlight; //0 or 1
 }ecu_sensor;
 typedef struct ecu_control{
-    int ignition; //0 or 1 seatbelt, fuel_level
-    int brake_status; //speed limit and obstacle 0 or 1
-    int fan_status; //0 or 1
-    int emergency_stop; //0 or 1 obstacle or collision/crash
-    int airbag; //0 or 1, crash and obstacle high priority
-    int ac_control; // 0 to 2 low mid high
-    int fuel_status; //0 1 2 red yellow white
-    int reverse_camera; //0 or 1
-    int light_status; //0 or 1 gear 6 reverse camera and low light
-    
+	int ignition; //0 or 1 seatbelt, fuel_level
+	int brake_status; //speed limit and obstacle 0 or 1
+	int fan_status; //0 or 1
+	int emergency_stop; //0 or 1 obstacle or collision/crash
+	int airbag; //0 or 1, crash and obstacle high priority
+	int ac_control; // 0 to 2 low mid high
+	int fuel_status; //0 1 2 red yellow white
+	int reverse_camera; //0 or 1
+	int light_status; //0 or 1 gear 6 reverse camera and low light	
 }ecu_control;
 
+typedef struct{
+    ecu_sensor sensor;
+    ecu_control control;
+    pthread_mutex_t lock;
+}ECU;
+
 int main(){
+    printf("--- Subsystem Process ---\n");
+    
     key_t key1 = 2345;
-    key_t key2 = 5678;
+    
+    sleep(2); // Wait for the sensor process to set up
 
-    printf("Inside subsystem process\n");
-
-    int shmid1 = shmget(key1, 1024, 0666); 
+    int shmid1 = shmget(key1, sizeof(ECU), 0666); 
     if(shmid1 == -1){
-        perror("shmget failed to access segment");
+        perror("shmget failed to access segment. Is car.c running?");
         return 1;
-    }    
-    ecu_sensor* shm1 = (ecu_sensor*) shmat(shmid1, NULL, 0);
-    if (shm1 == (ecu_sensor *)-1) {
+    }     
+    ECU* shm_ecu = (ECU*) shmat(shmid1, NULL, 0);
+    if (shm_ecu == (ECU *)-1) {
         perror("shmat failed");
         return 1;
+    }     
+    
+    printf("Waiting for car ignition...\n");
+    
+    // Wait until ignition is ON
+    while(shm_ecu->control.ignition == 0) {
+        sleep(1);
     }
     
-    int shmid2 = shmget(key2, 1024, 0666); 
-    if(shmid1 == -1){
-        perror("shmget failed to access segment");
-        return 1;
+    printf("Car Ignition is ON. Starting data read loop.\n");
+
+    while(shm_ecu->control.ignition == 1){ 
+        pthread_mutex_lock(&shm_ecu->lock);
+        
+        printf("\n[Subsystem] Reading data:\n");
+        printf("Temp: %.2f || Speed: %.2f || Gear: %d || Fuel: %.2f\n", 
+            shm_ecu->sensor.engine_temp, 
+            shm_ecu->sensor.engine_speed, 
+            shm_ecu->sensor.gear_pos, 
+            shm_ecu->sensor.fuel_level);
+        
+        pthread_mutex_unlock(&shm_ecu->lock);       
+        sleep(2);
     }   
-    ecu_control* shm2 = (ecu_control*) shmat(shmid2, NULL, 0);
-    if (shm2 == (ecu_control *)-1) {
-        perror("shmat failed");
-        return 1;
-    }
+     
+    printf("[Subsystem] Ignition OFF. Exiting read loop.\n");
     
-    while(shm2->ignition){
-	    printf("\nReading shared memory from subsystem:\n");
-	    printf("Engine temp: %.2f\n", shm1->engine_temp);
-	    printf("Engine speed: %.2f\n", shm1->engine_speed);
-	    printf("obstacle_detector: %d\n", shm1->obstacle_detector);
-	    printf("gear_pos: %d\n", shm1->gear_pos);
-	    printf("fuel_level: %.2f\n", shm1->fuel_level);
-	    sleep(2);
-     }   
-	  
-    shmdt(shm1);
-    shmdt(shm2);
-    shmctl(shmid1, IPC_RMID, NULL);
-    shmctl(shmid2, IPC_RMID, NULL);
-    
+
+    shmdt(shm_ecu); 
+    printf("--- Subsystem Process Exiting ---\n");
     return 0;
 }
