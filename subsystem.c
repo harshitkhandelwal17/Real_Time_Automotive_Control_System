@@ -4,29 +4,28 @@
 #include <sys/shm.h>
 #include <pthread.h>
 
-typedef struct ecu_sensor {
-    float engine_temp;
-    float engine_speed;
-    int obstacle_detector;
-    int gear_pos;
-    float fuel_level;
-    int seatbelt;
-    int inside_temp;
-    int crash;
-    int lowlight;
-} ecu_sensor;
+typedef struct ecu_sensor{
+	float engine_temp; //random
+	float engine_speed; //random
+	int obstacle_detector; // 0/1
+	int gear_pos; //1-6
+	float fuel_level; //0 to 100
+	int seatbelt; //0 or 1
+	int inside_temp; //0 to 100
+	int crash; //0 or 1	
+}ecu_sensor;
 
-typedef struct ecu_control {
-    int ignition;
-    int brake_status;
-    int fan_status;
-    int emergency_stop;
-    int airbag;
-    int ac_control;
-    int fuel_status;
-    int reverse_camera;
-    int light_status;
-} ecu_control;
+typedef struct ecu_control{
+	int ignition; //0 or 1 seatbelt, fuel_level
+	int brake_status; //speed limit and obstacle 0 or 1
+	int fan_status; //0 or 1
+	int emergency_stop; //0 or 1 obstacle or collision/crash
+	int airbag; //0 or 1, crash and obstacle high priority
+	int ac_control; // 0 to 2 low mid high
+	int fuel_status; //0 1 2 red yellow white
+	int reverse_camera; //0 or 1, gear 6 reverse camera
+	int back_light; //0 or 1, gear 6 back light	
+}ecu_control;
 
 typedef struct {
     ecu_sensor sensor;
@@ -45,8 +44,7 @@ void* fan_controller(void* arg) {
             pthread_mutex_unlock(&shm_ecu->lock);
             break;
         }
-
-        if (shm_ecu->sensor.engine_temp > 80.0 || shm_ecu->sensor.inside_temp > 35.0)
+        if (shm_ecu->sensor.engine_temp > 80.0)
             shm_ecu->control.fan_status = 1;
         else
             shm_ecu->control.fan_status = 0;
@@ -57,6 +55,23 @@ void* fan_controller(void* arg) {
     return NULL;
 }
 
+void* ac_controller(void* arg){
+	while(1){
+		pthread_mutex_lock(&shm_ecu->lock);
+        if (shm_ecu->control.ignition == 0) {
+            pthread_mutex_unlock(&shm_ecu->lock);
+            break;
+        }
+        if (shm_ecu->sensor.inside_temp > 24.0)
+            shm_ecu->control.ac_control = 1;
+        else
+            shm_ecu->control.ac_control = 0;
+
+        pthread_mutex_unlock(&shm_ecu->lock);
+        usleep(500000);
+    }
+    return NULL;
+}
 void* brake_controller(void* arg) {
     while (1) {
         pthread_mutex_lock(&shm_ecu->lock);
@@ -65,8 +80,11 @@ void* brake_controller(void* arg) {
             break;
         }
 
-        if (shm_ecu->sensor.obstacle_detector == 1 || shm_ecu->sensor.engine_speed > 120)
+        if (shm_ecu->sensor.obstacle_detector == 1 || shm_ecu->sensor.engine_speed > 100)
             shm_ecu->control.brake_status = 1;
+            if(shm_ecu->control.brake_status && shm_ecu->sensor.engine_speed < 40){            	
+            		shm_ecu->sensor.engine_speed -= 20;
+            }	
         else
             shm_ecu->control.brake_status = 0;
 
@@ -83,8 +101,8 @@ void* light_controller(void* arg) {
             pthread_mutex_unlock(&shm_ecu->lock);
             break;
         }
-
-        shm_ecu->control.light_status = shm_ecu->sensor.lowlight ? 1 : 0;
+	shm_ecu->control.back_light = (shm_ecu->sensor.gear_pos == 6) ? 1 : 0;  
+	shm_ecu->control.reverse_camera = (shm_ecu->sensor.gear_pos == 6) ? 1 : 0;    
         pthread_mutex_unlock(&shm_ecu->lock);
         usleep(500000);
     }
@@ -98,7 +116,6 @@ void* safety_controller(void* arg) {
             pthread_mutex_unlock(&shm_ecu->lock);
             break;
         }
-
         if (shm_ecu->sensor.crash == 1) {
             shm_ecu->control.emergency_stop = 1;
             shm_ecu->control.airbag = 1;
@@ -106,15 +123,30 @@ void* safety_controller(void* arg) {
             shm_ecu->control.emergency_stop = 0;
             shm_ecu->control.airbag = 0;
         }
-
         pthread_mutex_unlock(&shm_ecu->lock);
         usleep(500000);
     }
     return NULL;
 }
-
-// === Main === //
-
+void* fuel_controller(void* arg){
+	while (1) {
+        pthread_mutex_lock(&shm_ecu->lock);
+        if (shm_ecu->control.ignition == 0) {
+            pthread_mutex_unlock(&shm_ecu->lock);
+            break;
+        }
+        if (shm_ecu->sensor.fuel_level == 100) {
+            shm_ecu->control.fuel_status = 1;
+        } else if(shm_ecu->sensor.fuel_level < 100 || shm_ecu->sensor.fuel_level > 25) {
+            shm_ecu->control.fuel_status = 0;
+        } else{
+        	shm_ecu->control.fuel_status = -1;
+        }
+        pthread_mutex_unlock(&shm_ecu->lock);
+        usleep(500000);
+    }
+    return NULL;
+}
 int main() {
     printf("--- Subsystem Process ---\n");
 
@@ -151,4 +183,3 @@ int main() {
     shmdt(shm_ecu);
     return 0;
 }
-
