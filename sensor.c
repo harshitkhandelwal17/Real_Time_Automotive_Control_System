@@ -7,7 +7,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-
 typedef struct ecu_sensor{
 	float engine_temp; //random
 	float engine_speed; //random
