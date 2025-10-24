@@ -16,7 +16,6 @@ typedef struct ecu_sensor{
     int seatbelt; // 0 or 1
     int inside_temp; // 0 to 100
     int crash; // 0 or 1
-    int lowlight; // 0 or 1
 }ecu_sensor;
 
 typedef struct ecu_control{
@@ -28,7 +27,7 @@ typedef struct ecu_control{
     int ac_control; // 0 to 2 (low, mid, high)
     int fuel_status; // 0 1 2 (red, yellow, white)
     int reverse_camera; // 0 or 1
-    int light_status; // 0 or 1
+    int back_light; // 0 or 1
 }ecu_control;
 
 typedef struct {
@@ -147,20 +146,32 @@ void engine_on_screen(){
         attroff(COLOR_PAIR(2)|A_BOLD);
 
         mvprintw(5,8,"Engine Temp      : %.2f °C", shm_ecu->sensor.engine_temp);
-        mvprintw(6,8,"Engine Speed     : %.2f RPM", shm_ecu->sensor.engine_speed);
-        mvprintw(7,8,"Gear Position    : %d", shm_ecu->sensor.gear_pos);
-        mvprintw(8,8,"Reverse Camera Status    : %s", (shm_ecu->sensor.gear_pos==6)?"ON":"OFF");
-        mvprintw(9,8,"Fuel Level       : %.2f %%", shm_ecu->sensor.fuel_level);
-        mvprintw(10,8,"Seatbelt         : %s", (shm_ecu->sensor.seatbelt) ? "ON" : "OFF");
-        mvprintw(11,8,"Crash Status     : %s", (shm_ecu->sensor.crash) ? "CRASH DETECTED" : "NORMAL");
-        mvprintw(12,8,"Low Light        : %s", (shm_ecu->sensor.lowlight) ? "YES" : "NO");
-        mvprintw(13,8,"Fan Status        : %s", (shm_ecu->control.fan_status) ? "YES" : "NO");
-         mvprintw(14,8,"Brake Status        : %s", (shm_ecu->control.brake_status) ? "YES" : "NO");
-         mvprintw(15,8,"Light Status        : %s", (shm_ecu->control.light_status) ? "YES" : "NO");
-         mvprintw(16,8,"Emergency Stop       : %s", (shm_ecu->control.emergency_stop) ? "YES" : "NO");
-         mvprintw(17,8,"Airbag        : %s", (shm_ecu->control.airbag) ? "YES" : "NO");
-
-
+        mvprintw(6,8,"Fan Status        : %s", (shm_ecu->control.fan_status) ? "YES" : "NO");
+        
+        
+        mvprintw(8,8,"Engine Speed     : %.2f RPM", shm_ecu->sensor.engine_speed);
+        mvprintw(9,8,"%s", shm_ecu->sensor.engine_speed>100 ? "Decrease speed, break applied" : "Normal speed");
+        
+        mvprintw(11,8,"Fuel Level       : %.2f ", shm_ecu->sensor.fuel_level);  
+        mvprintw(12, 8, "%s",
+    		(shm_ecu->control.fuel_status == 1) ? "Fuel is full" :
+    			(shm_ecu->control.fuel_status == -1) ? "Low fuel level" :
+    				(shm_ecu->control.fuel_status == 0) ? "Idel fuel level" : ""   		
+	);
+        	
+              
+        mvprintw(14,8,"Gear Position    : %d", shm_ecu->sensor.gear_pos);
+        mvprintw(15,8,"Reverse Camera Status    : %s", (shm_ecu->control.reverse_camera)?"ON":"OFF");
+        mvprintw(16,8,"Light Status        : %s", (shm_ecu->control.back_light)?"ON":"OFF");
+        
+        mvprintw(18,8,"Object Detected        : %s", (shm_ecu->sensor.obstacle_detector) ? "YES" : "NO");
+        mvprintw(19,8,"Object Detected Action:        : %s", 
+        	(shm_ecu->sensor.obstacle_detector) ? "Vehicle Slowing Down" : "Vehicle Running Smoothly");
+        	           
+	/*mvprintw(21,8,"Crash Status     : %s", (shm_ecu->sensor.crash) ? "CRASH DETECTED" : "NORMAL");              
+	mvprintw(22,8,"Emergency Stop       : %s", (shm_ecu->control.emergency_stop) ? "YES" : "NO");
+        mvprintw(23,8,"Airbag        : %s", (shm_ecu->control.airbag) ? "YES" : "NO");
+	*/
 
         pthread_mutex_unlock(&shm_ecu->lock);
 
@@ -189,7 +200,5 @@ void draw_button(int y,int x,char* label,int color_pair){
 }
 
 void show_back_button(){
-    mvprintw(19,8,"Press 'b' to go back to the Main Menu");
+    mvprintw(23,8,"Press 'b' to go back to the Main Menu");
 } 
-
-
