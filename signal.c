@@ -3,6 +3,7 @@
 #include<unistd.h>
 #include<signal.h>
 
+
 int main(){
     printf("--- Control Panel Process ---\n");
     
