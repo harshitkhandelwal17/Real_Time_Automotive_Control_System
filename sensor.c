@@ -15,8 +15,7 @@ typedef struct ecu_sensor{
 	float fuel_level; //0 to 100
 	int seatbelt; //0 or 1
 	int inside_temp; //0 to 100
-	int crash; //0 or 1
-	int lowlight; //0 or 1
+	int crash; //0 or 1	
 }ecu_sensor;
 typedef struct ecu_control{
 	int ignition; //0 or 1 seatbelt, fuel_level
@@ -26,8 +25,8 @@ typedef struct ecu_control{
 	int airbag; //0 or 1, crash and obstacle high priority
 	int ac_control; // 0 to 2 low mid high
 	int fuel_status; //0 1 2 red yellow white
-	int reverse_camera; //0 or 1
-	int light_status; //0 or 1 gear 6 reverse camera and low light	
+	int reverse_camera; //0 or 1, gear 6 reverse camera
+	int back_light; //0 or 1, gear 6 back light	
 }ecu_control;
 
 typedef struct{
@@ -45,9 +44,17 @@ void* engine_handler(void* arg)
 	while(shm_ecu->control.ignition){ 
 		pthread_mutex_lock(&shm_ecu->lock);
 		shm_ecu->sensor.engine_temp = 80 + rand() % 21;
-		shm_ecu->sensor.engine_speed = 20 + rand() % 81;
+		shm_ecu->sensor.inside_temp = 20 + rand() % 30;
+		shm_ecu->sensor.engine_speed = 50 + rand() % 80;
 		shm_ecu->sensor.gear_pos = 1 + rand() % 6; 
-		shm_ecu->sensor.fuel_level = 100.0f - (float)(rand() % 5);
+		shm_ecu->sensor.fuel_level = 1 + rand() %100;
+		int ran = rand() % 4;
+		if (ran < 3) { // 0, 1, or 2 
+		    shm_ecu->sensor.obstacle_detector = 0;
+		} else { // 3 
+		    shm_ecu->sensor.obstacle_detector = 1;
+		}
+        
         
 		printf("[Engine Thread] Temp: %.2f || Speed: %.2f || Gear: %d || Fuel: %.2f\n", 
 			shm_ecu->sensor.engine_temp, 
@@ -107,15 +114,14 @@ int main()
     
     memset(shm_ecu, 0, sizeof(ECU));
 
-    pthread_mutexattr_t attr;
+    /*pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED); 
-    
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);    
     if (pthread_mutex_init(&shm_ecu->lock, &attr) != 0) {
         perror("Shared Mutex initialization failed");
         exit(1);
     }
-    pthread_mutexattr_destroy(&attr);
+    pthread_mutexattr_destroy(&attr);*/
     
     signal(SIGUSR1, car_status_handler);
     signal(SIGUSR2, car_status_handler);
