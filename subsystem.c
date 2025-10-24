@@ -81,6 +81,6 @@ int main(){
     
 
     shmdt(shm_ecu); 
-    printf("--- Subsystem Process Exiting ---\n");
+    printf("--- Subsystem Process Exiting Safely ---\n");
     return 0;
 }
