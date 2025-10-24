@@ -18,9 +18,8 @@ signal: signal.c
 server: server.c
 	$(CC) server.c -o server $(CFLAGS)
 
-ui: ui.c
+UI: UI.c
 	$(CC) UI.c -o UI -lncurses $(CFLAGS)
 
 clean:
 	rm -f $(TARGETS)
-
