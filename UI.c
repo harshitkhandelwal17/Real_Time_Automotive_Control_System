@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/shm.h>
+#include <pthread.h>
+#include <string.h>
+#include <errno.h>
 
 typedef struct ecu_sensor{
     float engine_temp;  // random
@@ -26,6 +30,12 @@ typedef struct ecu_control{
     int reverse_camera; // 0 or 1
     int light_status; // 0 or 1
 }ecu_control;
+
+typedef struct {
+    ecu_sensor sensor;
+    ecu_control control;
+    pthread_mutex_t lock;
+} ECU;
 
 void show_engine_status();
 void show_sensor_data();
@@ -110,50 +120,57 @@ void engine_off_screen(){
 }
 
 void engine_on_screen(){
-    //ecu_sensor sensor={75.0,1200.0,1,3,50.0,1,22,0,0}; 
-    key_t key=
     
-    int shm_id=shmget(key,sizeof(ecu_sensor),0666|IPC_CREAT);
-    if(shm_id==-1){
-        perror("shmget");
+    key_t key = 2345;
+    
+    int shm_id = shmget(key, sizeof(ECU), 0666);
+    if (shm_id == -1) {
+        endwin();
+        perror("shmget failed (Is car/sensor.c running?)");
         exit(1);
     }
 
-    ecu_sensor* sensor=(ecu_sensor*)shmat(shm_id,NULL,0);
-    if(sensor==(void*)-1){
-        perror("shmat");
+     ECU* shm_ecu = (ECU*) shmat(shm_id, NULL, 0);
+    if (shm_ecu == (void*) -1) {
+        endwin();
+        perror("shmat failed");
         exit(1);
     }
-    
     int ch;
-    nodelay(stdscr,TRUE);
-    box(stdscr,0,0);
-    clear();
-    while(1){
+    nodelay(stdscr, TRUE);
+    while (1) {
+        pthread_mutex_lock(&shm_ecu->lock);
+
+        clear();
         attron(COLOR_PAIR(2)|A_BOLD);
-     	mvprintw(2,12,"ECU SENSOR DATA DASHBOARD");
-     	attroff(COLOR_PAIR(2)|A_BOLD);
-     	
-        mvprintw(5,8,"+----------------------------------------+");
-        mvprintw(6,8,"| %-35s %.2f °C    |", "1. Engine Temp:",sensor.engine_temp);
-        mvprintw(7,8,"| %-35s %.2f RPM   |", "2. Engine Speed:",sensor.engine_speed);
-        mvprintw(8,8,"| %-35s %.2f %%    |", "3. Fuel Level:",sensor.fuel_level);
-        mvprintw(9,8,"| %-35s %d         |", "4. Gear Position:",sensor.gear_pos);
-        mvprintw(10,8,"| %-35s %-3s      |", "5. Seatbelt:",(sensor.seatbelt==1)?"ON":"OFF");
-        mvprintw(11,8,"| %-35s %-20s     |", "6. Crash Status:",(sensor.crash==1)?"CRASH DETECTED":"NO CRASH");
-        mvprintw(12,8,"+----------------------------------------+");
+        mvprintw(2,12,"=== ECU SENSOR DATA DASHBOARD ===");
+        attroff(COLOR_PAIR(2)|A_BOLD);
+
+        mvprintw(5,8,"Engine Temp      : %.2f °C", shm_ecu->sensor.engine_temp);
+        mvprintw(6,8,"Engine Speed     : %.2f RPM", shm_ecu->sensor.engine_speed);
+        mvprintw(7,8,"Gear Position    : %d", shm_ecu->sensor.gear_pos);
+        mvprintw(8,8,"Fuel Level       : %.2f %%", shm_ecu->sensor.fuel_level);
+        mvprintw(9,8,"Seatbelt         : %s", (shm_ecu->sensor.seatbelt) ? "ON" : "OFF");
+        mvprintw(10,8,"Crash Status     : %s", (shm_ecu->sensor.crash) ? "CRASH DETECTED" : "NORMAL");
+        mvprintw(11,8,"Low Light        : %s", (shm_ecu->sensor.lowlight) ? "YES" : "NO");
+
+        pthread_mutex_unlock(&shm_ecu->lock);
 
         show_back_button();
         refresh();
 
-        ch=getch();
-        if(ch=='b'||ch=='B'){
-            nodelay(stdscr,FALSE);
+        ch = getch();
+        if (ch == 'b' || ch == 'B') {
+            nodelay(stdscr, FALSE);
             break;
         }
+
+        usleep(500000); // Refresh every 0.5s
     }
-    shmdt(sensor);
+
+    shmdt(shm_ecu);
 }
+     
 
 void draw_button(int y,int x,char* label,int color_pair){
     attron(COLOR_PAIR(color_pair)|A_BOLD);
@@ -166,5 +183,4 @@ void draw_button(int y,int x,char* label,int color_pair){
 void show_back_button(){
     mvprintw(14,8,"Press 'b' to go back to the Main Menu");
 } 
-
 
