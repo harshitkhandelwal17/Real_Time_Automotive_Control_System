@@ -149,10 +149,18 @@ void engine_on_screen(){
         mvprintw(5,8,"Engine Temp      : %.2f °C", shm_ecu->sensor.engine_temp);
         mvprintw(6,8,"Engine Speed     : %.2f RPM", shm_ecu->sensor.engine_speed);
         mvprintw(7,8,"Gear Position    : %d", shm_ecu->sensor.gear_pos);
-        mvprintw(8,8,"Fuel Level       : %.2f %%", shm_ecu->sensor.fuel_level);
-        mvprintw(9,8,"Seatbelt         : %s", (shm_ecu->sensor.seatbelt) ? "ON" : "OFF");
-        mvprintw(10,8,"Crash Status     : %s", (shm_ecu->sensor.crash) ? "CRASH DETECTED" : "NORMAL");
-        mvprintw(11,8,"Low Light        : %s", (shm_ecu->sensor.lowlight) ? "YES" : "NO");
+        mvprintw(8,8,"Reverse Camera Status    : %s", (shm_ecu->sensor.gear_pos==6)?"ON":"OFF");
+        mvprintw(9,8,"Fuel Level       : %.2f %%", shm_ecu->sensor.fuel_level);
+        mvprintw(10,8,"Seatbelt         : %s", (shm_ecu->sensor.seatbelt) ? "ON" : "OFF");
+        mvprintw(11,8,"Crash Status     : %s", (shm_ecu->sensor.crash) ? "CRASH DETECTED" : "NORMAL");
+        mvprintw(12,8,"Low Light        : %s", (shm_ecu->sensor.lowlight) ? "YES" : "NO");
+        mvprintw(13,8,"Fan Status        : %s", (shm_ecu->control.fan_status) ? "YES" : "NO");
+         mvprintw(14,8,"Brake Status        : %s", (shm_ecu->control.brake_status) ? "YES" : "NO");
+         mvprintw(15,8,"Light Status        : %s", (shm_ecu->control.light_status) ? "YES" : "NO");
+         mvprintw(16,8,"Emergency Stop       : %s", (shm_ecu->control.emergency_stop) ? "YES" : "NO");
+         mvprintw(17,8,"Airbag        : %s", (shm_ecu->control.airbag) ? "YES" : "NO");
+
+
 
         pthread_mutex_unlock(&shm_ecu->lock);
 
@@ -181,6 +189,6 @@ void draw_button(int y,int x,char* label,int color_pair){
 }
 
 void show_back_button(){
-    mvprintw(14,8,"Press 'b' to go back to the Main Menu");
+    mvprintw(19,8,"Press 'b' to go back to the Main Menu");
 } 
 
