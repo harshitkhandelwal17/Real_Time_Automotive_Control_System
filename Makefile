@@ -19,7 +19,7 @@ server: server.c
 	$(CC) server.c -o server $(CFLAGS)
 
 UI: UI.c
-	$(CC) UI.c -o UI -lncurses $(CFLAGS)
+	$(CC) UI.c -o UI -lncursesw $(CFLAGS)
 
 clean:
 	rm -f $(TARGETS)
