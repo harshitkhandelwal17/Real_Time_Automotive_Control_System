@@ -5,38 +5,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <sys/shm.h>
-
-typedef struct ecu_sensor {
-    float engine_temp;
-    float engine_speed;
-    int obstacle_detector;
-    int gear_pos;
-    float fuel_level;
-    int seatbelt;
-    int inside_temp;
-    int crash;
-    int lowlight;
-} ecu_sensor;
-
-typedef struct ecu_control {
-    int ignition;
-    int brake_status;
-    int fan_status;
-    int emergency_stop;
-    int airbag;
-    int ac_control;
-    int fuel_status;
-    int reverse_camera;
-    int light_status;
-} ecu_control;
-
-typedef struct {
-    ecu_sensor sensor;
-    ecu_control control;
-    pthread_mutex_t lock;
-} ECU;
-
-ECU* shm_ecu;
+#include "sensor.h"
 
 void send_html_page(int client_sock) {
     pthread_mutex_lock(&shm_ecu->lock);
@@ -79,7 +48,7 @@ void send_html_page(int client_sock) {
         shm_ecu->sensor.fuel_level,
         shm_ecu->control.fan_status ? "ON" : "OFF",
         shm_ecu->control.brake_status ? "ON" : "OFF",
-        shm_ecu->control.light_status ? "ON" : "OFF",
+        shm_ecu->control.back_light ? "ON" : "OFF",
         shm_ecu->control.airbag ? "DEPLOYED" : "OK"
     );
 
@@ -150,4 +119,3 @@ int main() {
     shmdt(shm_ecu);
     return 0;
 }
-
