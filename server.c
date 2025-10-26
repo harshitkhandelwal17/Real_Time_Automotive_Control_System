@@ -9,14 +9,27 @@
 
 void send_html_page(int client_sock) {
     pthread_mutex_lock(&shm_ecu->lock);
-
-    char response[4096];
+    
+    int is_crash = shm_ecu->sensor.crash;
+    char crash_banner[512] = "";
+    
+    if (is_crash) {
+        snprintf(crash_banner, sizeof(crash_banner),
+            "<div style='background:#f00;color:#fff;padding:20px;font-size:24px;animation:blink 1s infinite;'>"
+            "🚨 EMERGENCY ALERT: CRASH DETECTED 🚨<br>"
+            "Location: Vehicle ID [%d]<br>"
+            "Time: %ld<br>"
+            "Status: Emergency services notified"
+            "</div>", getpid(), time(NULL));
+    }
+    
+    char response[8192];
     snprintf(response, sizeof(response),
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html\r\n\r\n"
         "<!DOCTYPE html>"
         "<html><head>"
-        "<meta http-equiv='refresh' content='1'>"  // refresh every 1 sec
+        "<meta http-equiv='refresh' content='1'>"
         "<title>ECU Live Dashboard</title>"
         "<style>"
         "body{font-family:Arial;background:#111;color:#eee;text-align:center;}"
@@ -24,8 +37,11 @@ void send_html_page(int client_sock) {
         "table{margin:auto;border-collapse:collapse;}"
         "td,th{border:1px solid #555;padding:8px;}"
         "tr:nth-child(even){background:#222;}"
+        ".crash{background:#f00;color:#fff;font-weight:bold;}"
+        "@keyframes blink{0%%,100%%{opacity:1;}50%%{opacity:0.3;}}"
         "</style>"
         "</head><body>"
+        "%s"  // Crash banner if crash detected
         "<h2>🚘 ECU Live Data Dashboard</h2>"
         "<table>"
         "<tr><th>Parameter</th><th>Value</th></tr>"
@@ -37,10 +53,16 @@ void send_html_page(int client_sock) {
         "<tr><td>Fan Status</td><td>%s</td></tr>"
         "<tr><td>Brake Status</td><td>%s</td></tr>"
         "<tr><td>Light Status</td><td>%s</td></tr>"
-        "<tr><td>Airbag</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Crash Status</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Airbag</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Emergency Stop</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Hazard Lights</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Horn/Alarm</td><td>%s</td></tr>"
+        "<tr class='%s'><td>Doors</td><td>%s</td></tr>"
         "</table>"
         "<p style='margin-top:20px;color:#999;'>Page auto-refreshes every 1 second.</p>"
         "</body></html>",
+        crash_banner,
         shm_ecu->control.ignition,
         shm_ecu->sensor.engine_temp,
         shm_ecu->sensor.engine_speed,
@@ -49,13 +71,23 @@ void send_html_page(int client_sock) {
         shm_ecu->control.fan_status ? "ON" : "OFF",
         shm_ecu->control.brake_status ? "ON" : "OFF",
         shm_ecu->control.back_light ? "ON" : "OFF",
-        shm_ecu->control.airbag ? "DEPLOYED" : "OK"
+        is_crash ? "crash" : "",
+        is_crash ? "CRASH DETECTED!" : "NORMAL",
+        is_crash ? "crash" : "",
+        shm_ecu->control.airbag ? "DEPLOYED" : "OK",
+        is_crash ? "crash" : "",
+        shm_ecu->control.emergency_stop ? "ACTIVE" : "OFF",
+        shm_ecu->control.hazard_lights ? "crash" : "",
+        shm_ecu->control.hazard_lights ? "BLINKING" : "OFF",
+        shm_ecu->control.horn_alarm ? "crash" : "",
+        shm_ecu->control.horn_alarm ? "ACTIVE" : "OFF",
+        shm_ecu->control.doors_unlocked ? "crash" : "",
+        shm_ecu->control.doors_unlocked ? "UNLOCKED" : "LOCKED"
     );
-
     pthread_mutex_unlock(&shm_ecu->lock);
-
     send(client_sock, response, strlen(response), 0);
 }
+
 
 void* handle_client(void* arg) {
     int client_sock = *(int*)arg;
@@ -72,7 +104,7 @@ void* handle_client(void* arg) {
 }
 
 int main() {
-    key_t key = 2345;
+    key_t key = 9876;
     int shmid = shmget(key, sizeof(ECU), 0666);
     if (shmid == -1) {
         perror("shmget failed (Is sensor.c running?)");
