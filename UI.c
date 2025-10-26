@@ -61,9 +61,9 @@ int main(){
     init_pair(3,COLOR_GREEN,COLOR_BLACK);  
     init_pair(4,COLOR_WHITE,COLOR_BLUE);  
     init_pair(5,COLOR_WHITE,COLOR_BLACK);     
-    init_pair(6, COLOR_RED, COLOR_BLACK);    // 🛑 Warnings
-    init_pair(7, COLOR_GREEN, COLOR_BLACK);  // ✅ Normal
-    init_pair(8, COLOR_MAGENTA, COLOR_BLACK); // ⚙️ System Controls
+    init_pair(6, COLOR_RED, COLOR_BLACK);    // Warnings
+    init_pair(7, COLOR_GREEN, COLOR_BLACK);  // Normal
+    init_pair(8, COLOR_MAGENTA, COLOR_BLACK); //System Controls
 
     srand(time(0));
     while(1){
@@ -79,9 +79,9 @@ void show_engine_status(){
     clear();
     
     attron(COLOR_PAIR(1)|A_BOLD);
-    mvaddwstr(2, 42, L"\U0001F697");
+    mvaddwstr(2, 42, L"\U0001F697"); // 🚗 Car
     mvprintw(2, 44, "REALTIME AUTOMATIVE CONTROL SYSTEM");
-    mvaddwstr(2, 79, L"\U0001F697");    
+    mvaddwstr(2, 78, L"\U0001F697"); // 🚗 Car
     attroff(COLOR_PAIR(1)|A_BOLD);
 
     draw_button(5, 45,"1. Engine ON",2);
@@ -116,10 +116,10 @@ void show_engine_status(){
 void engine_off_screen(){
 	clear();
     	attron(COLOR_PAIR(5)|A_BOLD);
-    	mvprintw(5,45,"Engine is OFF. Please turn it ON to proceed.");
+    	mvprintw(5,40,"Engine is OFF. Please turn it ON to proceed.");
     	attroff(COLOR_PAIR(5));
     
-    	mvprintw(7,45,"Press 'b' to go back to the Main Menu.");
+    	mvprintw(7,40,"Press 'b' to go back to the Main Menu.");
     	refresh();
 
     	int ch=getch();
@@ -131,22 +131,20 @@ void engine_off_screen(){
 void show_seatbelt_status() {
     clear();
     attron(COLOR_PAIR(2) | A_BOLD);
-    mvaddwstr(2, 48, L"\U0001F4B4");
     mvprintw(2, 50, "Seatbelt Status");
-    mvaddwstr(2, 67, L"\U0001F4B4");
     attroff(COLOR_PAIR(2) | A_BOLD);
     
-    mvprintw(5, 45, "+----------------------------------+");
+    mvprintw(5, 43, "+----------------------------------+");
     attron(COLOR_PAIR(3) | A_BOLD);
-    mvprintw(6, 45, "| *Is the seatbelt ON?* |");
+    mvprintw(6, 43, "| *Is the seatbelt ON?*            |");
     attroff(COLOR_PAIR(3) | A_BOLD);
-    mvprintw(7, 45, "+----------------------------------+");
+    mvprintw(7, 43, "+----------------------------------+");
     
-    mvprintw(9, 45, "+----------------------------------+");
-    mvprintw(10, 45, "| Press '1' for Yes (Seatbelt ON)  |");
-    mvprintw(11, 45, "+----------------------------------+");
-    mvprintw(12, 45, "| Press '0' for No (Seatbelt OFF)  |");
-    mvprintw(13, 45, "+----------------------------------+");
+    mvprintw(9, 43, "+----------------------------------+");
+    mvprintw(10, 43, "| Press '1' for Yes (Seatbelt ON)  |");
+    mvprintw(11, 43, "+----------------------------------+");
+    mvprintw(12, 43, "| Press '0' for No (Seatbelt OFF)  |");
+    mvprintw(13, 43, "+----------------------------------+");
     refresh();
 
     int ch = getch();
@@ -155,16 +153,56 @@ void show_seatbelt_status() {
     } else if (ch == '0') {
         engine_off_screen();
     } else {
-        mvprintw(15, 45, "Invalid input! Press any key...");
+        mvprintw(15, 43, "Invalid input! Press any key...");
         getch();
         show_seatbelt_status();
         return;
     }
 }
-
+void crash_screen() {
+    clear();
+    
+    // Red flashing border effect
+    attron(COLOR_PAIR(6) | A_BOLD | A_BLINK);
+    for(int i = 0; i < COLS; i++) {
+        mvaddch(0, i, '=');
+        mvaddch(LINES-1, i, '=');
+    }
+    attroff(COLOR_PAIR(6) | A_BOLD | A_BLINK);
+    
+    attron(COLOR_PAIR(6) | A_BOLD);
+    mvaddwstr(5, 45, L"\u2620  CRASH DETECTED  \u2620");
+    mvprintw(7, 40, "+------------------------------------+");
+    mvprintw(8, 40, "|                                    |");
+    attroff(COLOR_PAIR(6) | A_BOLD);
+    
+    attron(COLOR_PAIR(7));
+    mvprintw(8, 42, "  EMERGENCY SYSTEMS ACTIVATED");
+    attroff(COLOR_PAIR(7));
+    
+    attron(COLOR_PAIR(6) | A_BOLD);
+    mvprintw(9, 40, "|                                    |");
+    mvprintw(10, 40, "+------------------------------------+");
+    attroff(COLOR_PAIR(6) | A_BOLD);
+    
+    mvaddwstr(12, 40, L" Airbag: DEPLOYED");
+    mvaddwstr(13, 40, L"\uF6D1 Emergency Stop: ACTIVE");
+    mvaddwstr(14, 40, L"\uF697 Engine Status: OFF");
+    mvaddwstr(15, 40, L"\u26A0  Hazard Lights: BLINKING");
+    mvaddwstr(16, 40, L"\uF4E2 Horn/Alarm: ACTIVE");
+    mvaddwstr(17, 40, L"\U0001F513 Doors: AUTO-UNLOCKED");
+    mvprintw(18, 40, "Emergency Alert: SENT TO SERVER");
+    
+    attron(COLOR_PAIR(2));
+    mvprintw(21, 35, "Returning to main menu in 5 seconds...");
+    attroff(COLOR_PAIR(2));
+    
+    refresh();
+    sleep(5);
+}
 void engine_on_screen(){
     
-    key_t key = 2345;
+    key_t key = 9876;
     
     int shm_id = shmget(key, sizeof(ECU), 0666);
     if (shm_id == -1) {
@@ -190,12 +228,19 @@ void engine_on_screen(){
 
     while (1) {
         pthread_mutex_lock(&shm_ecu->lock);
-
+	
+	if (shm_ecu->sensor.crash == 1) {
+		pthread_mutex_unlock(&shm_ecu->lock);
+		sleep(2);
+		crash_screen();
+		nodelay(stdscr, FALSE);
+		return; // Go back to main menu
+	}
         clear();
         attron(COLOR_PAIR(2)|A_BOLD);
-        mvaddwstr(2, 38, L"\U0001F697");    
-        mvprintw(2, 40,"ECU SENSOR DASHBOARD");
-        mvaddwstr(2, 62, L"\U0001F697"); 
+        mvaddwstr(2, 45, L"\U0001F697");    
+        mvprintw(2, 48,"ECU SENSOR DASHBOARD");
+        mvaddwstr(2, 70, L"\U0001F697"); 
         attroff(COLOR_PAIR(2)|A_BOLD);
         
         //ENGINE TEMP & FAN
@@ -275,22 +320,43 @@ void engine_on_screen(){
         mvprintw(10, COL3_X + 2, "Crash Status:");
         int CRASH_COLOR = (shm_ecu->sensor.crash) ? 6 : 5;
         attron(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
-        mvaddwstr(10, COL3_X + 17, (shm_ecu->sensor.crash) ? L"\u2620" : L""); // ☠ or ✅
+        mvaddwstr(10, COL3_X + 17, (shm_ecu->sensor.crash) ? L"\u2620" : L""); // ☠ 
         printw(" %s", (shm_ecu->sensor.crash) ? "CRASH!" : "NORMAL");
         attroff(COLOR_PAIR(CRASH_COLOR)|A_BOLD);        
         // Emergency Stop Status
         mvprintw(11, COL3_X + 2, "E-Stop Status:");
         attron(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
-        mvaddwstr(11, COL3_X + 17, (shm_ecu->control.emergency_stop) ? L"\u26D4" : L""); // ⛔ or ✅
+        mvaddwstr(11, COL3_X + 17, (shm_ecu->control.emergency_stop) ? L"\u26D4" : L""); // ⛔
         printw(" %s", (shm_ecu->control.emergency_stop) ? "ACTIVE" : "NO");
         attroff(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
         // Airbag Status
         mvprintw(12, COL3_X + 2, "Airbag Deploy:");
         attron(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
-        mvaddwstr(12, COL3_X + 17, (shm_ecu->control.airbag) ? L"\u26A0" : L""); // ⚠️ or ✅
+        mvaddwstr(12, COL3_X + 17, (shm_ecu->control.airbag) ? L"\u26A0" : L""); // ⚠️
         printw(" %s", (shm_ecu->control.airbag) ? "YES" : "NO");
         attroff(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
         
+        // 7. CRASH SAFETY SYSTEMS (NEW BOX - below COL1)
+	draw_simple_box(15, COL1_X, 4, BOX_W, "Crash Safety Systems", 8);
+	// Hazard Lights
+	mvprintw(16, COL1_X + 2, "Hazard Lights:");
+	int hazard_color = shm_ecu->control.hazard_lights ? 6 : 7;
+	attron(COLOR_PAIR(hazard_color) | A_BOLD);
+	mvaddwstr(16, COL1_X + 17, shm_ecu->control.hazard_lights ? L"\u26A0" : L"");
+	printw(" %s", shm_ecu->control.hazard_lights ? " BLINKING" : "OFF");
+	attroff(COLOR_PAIR(hazard_color) | A_BOLD);
+	// Horn/Alarm
+	mvprintw(17, COL1_X + 2, "Horn/Alarm:");
+	attron(COLOR_PAIR(hazard_color) | A_BOLD);
+	mvaddwstr(17, COL1_X + 17, shm_ecu->control.horn_alarm ? L"\uF4E2" : L"");
+	printw(" %s", shm_ecu->control.horn_alarm ? " ACTIVE" : "OFF");
+	attroff(COLOR_PAIR(hazard_color) | A_BOLD);
+	// Doors Status
+	mvprintw(18, COL1_X + 2, "Doors:");
+	attron(COLOR_PAIR(hazard_color) | A_BOLD);
+	mvaddwstr(18, COL1_X + 17, shm_ecu->control.doors_unlocked ? L"\U0001F513" : L"\U0001F512");
+	printw(" %s", shm_ecu->control.doors_unlocked ? " UNLOCKED" : "LOCKED");
+	attroff(COLOR_PAIR(hazard_color) | A_BOLD);
         
         // EMERGENCY STOP BUTTON
         attron(COLOR_PAIR(CRASH_COLOR)|A_BOLD);
@@ -301,21 +367,25 @@ void engine_on_screen(){
         
         pthread_mutex_unlock(&shm_ecu->lock);
 
-        refresh();
+        //refresh();
 
         ch = getch();
         if (ch == 'b' || ch == 'B') {
             nodelay(stdscr, FALSE);
             break;
-        } else if (ch == 'e' || ch == 'E') {
-             // Logic to simulate emergency stop command
-            pthread_mutex_lock(&shm_ecu->lock);           
-            shm_ecu->control.emergency_stop = 1; 
-            sleep(1);
-            engine_off_screen();           
-            pthread_mutex_unlock(&shm_ecu->lock);
-        }
-	sleep(3);    
+        } 
+        else if (ch == 'e' || ch == 'E') {
+	    pthread_mutex_lock(&shm_ecu->lock);           
+	    shm_ecu->control.emergency_stop = 1;
+	    shm_ecu->control.ignition = 0;
+	    pthread_mutex_unlock(&shm_ecu->lock);
+	    
+	    nodelay(stdscr, FALSE);
+	    sleep(1);
+	    engine_off_screen();
+	    break;
+	}	
+	sleep(3);   // after every 3 sec, screen refresh
     }
 
     shmdt(shm_ecu);
@@ -328,8 +398,4 @@ void draw_button(int y,int x,char* label,int color_pair){
     mvprintw(y+1,x,"| %-26s |",label);
     mvprintw(y+2,x,"+----------------------------+");
     attroff(COLOR_PAIR(color_pair)|A_BOLD);
-}
-
-void show_back_button(){
-    // Instructions are now handled within engine_on_screen
 }
