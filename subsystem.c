@@ -60,7 +60,6 @@ void* brake_controller(void* arg) {
             shm_ecu->control.brake_status = 0;
 
         pthread_mutex_unlock(&shm_ecu->lock);
-        //usleep(500000);
         sleep(3);
     }
     return NULL;
@@ -76,7 +75,6 @@ void* light_controller(void* arg) {
 	shm_ecu->control.back_light = (shm_ecu->sensor.gear_pos == 6) ? 1 : 0;  
 	shm_ecu->control.reverse_camera = (shm_ecu->sensor.gear_pos == 6) ? 1 : 0;    
         pthread_mutex_unlock(&shm_ecu->lock);
-        //usleep(500000);
         sleep(3);
     }
     return NULL;
@@ -92,12 +90,19 @@ void* safety_controller(void* arg) {
         if (shm_ecu->sensor.crash == 1) {
             shm_ecu->control.emergency_stop = 1;
             shm_ecu->control.airbag = 1;
+            shm_ecu->control.hazard_lights = 1;
+            shm_ecu->control.horn_alarm = 1;
+            shm_ecu->control.doors_unlocked = 1;
+            shm_ecu->control.ignition = 0; // Force engine off
+            printf("[CRASH SAFETY] All emergency systems activated!\n");
         } else {
             shm_ecu->control.emergency_stop = 0;
             shm_ecu->control.airbag = 0;
+            shm_ecu->control.hazard_lights = 0;
+            shm_ecu->control.horn_alarm = 0;
+            shm_ecu->control.doors_unlocked = 0;
         }
         pthread_mutex_unlock(&shm_ecu->lock);
-        //usleep(500000);
         sleep(3);
     }
     return NULL;
@@ -109,23 +114,23 @@ void* fuel_controller(void* arg){
             pthread_mutex_unlock(&shm_ecu->lock);
             break;
         }
-        if (shm_ecu->sensor.fuel_level == 100) {
-            shm_ecu->control.fuel_status = 1;
-        } else if(shm_ecu->sensor.fuel_level < 100 || shm_ecu->sensor.fuel_level > 25) {
-            shm_ecu->control.fuel_status = 0;
-        } else{
-        	shm_ecu->control.fuel_status = -1;
-        }
+        if (shm_ecu->sensor.fuel_level >= 75.0f) {
+    	    shm_ecu->control.fuel_status = 1; // Full
+	} else if (shm_ecu->sensor.fuel_level > 25.0f) {
+	    shm_ecu->control.fuel_status = 0; // Normal
+	} else {
+	    shm_ecu->control.fuel_status = -1;// Low
+	}
         pthread_mutex_unlock(&shm_ecu->lock);
-        //usleep(500000);
         sleep(3);
     }
     return NULL;
 }
+
 int main() {
     printf("--- Subsystem Process ---\n");
 
-    key_t key1 = 2345;
+    key_t key1 = 9876;
     int shmid1 = shmget(key1, sizeof(ECU), 0666);
     if (shmid1 == -1) {
         perror("shmget failed. Is sensor.c running?");
@@ -143,16 +148,20 @@ int main() {
 
     printf("Ignition ON. Starting controllers...\n");
 
-    pthread_t fan_thread, brake_thread, light_thread, safety_thread;
+    pthread_t fan_thread, ac_thread, brake_thread, light_thread, safety_thread, fuel_thread;
     pthread_create(&fan_thread, NULL, fan_controller, NULL);
+    pthread_create(&ac_thread, NULL, ac_controller, NULL);
     pthread_create(&brake_thread, NULL, brake_controller, NULL);
     pthread_create(&light_thread, NULL, light_controller, NULL);
     pthread_create(&safety_thread, NULL, safety_controller, NULL);
+    pthread_create(&fuel_thread, NULL, fuel_controller, NULL);
 
     pthread_join(fan_thread, NULL);
+    pthread_join(ac_thread, NULL);
     pthread_join(brake_thread, NULL);
     pthread_join(light_thread, NULL);
     pthread_join(safety_thread, NULL);
+    pthread_join(fuel_thread, NULL);
 
     printf("Ignition OFF. Controllers stopped.\n");
     shmdt(shm_ecu);
