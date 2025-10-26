@@ -21,15 +21,19 @@ typedef struct ecu_sensor{
 	int crash; //0 or 1	
 }ecu_sensor;
 typedef struct ecu_control{
-	int ignition; //0 or 1 seatbelt, fuel_level
-	int brake_status; //speed limit and obstacle 0 or 1
-	int fan_status; //0 or 1
-	int emergency_stop; //0 or 1 obstacle or collision/crash
-	int airbag; //0 or 1, crash and obstacle high priority
-	int ac_control; // 0 to 2 low mid high
-	int fuel_status; //0 1 2 red yellow white
-	int reverse_camera; //0 or 1, gear 6 reverse camera
-	int back_light; //0 or 1, gear 6 back light	
+    int ignition;
+    int brake_status;
+    int fan_status;
+    int emergency_stop;
+    int airbag;
+    int ac_control;
+    int fuel_status;
+    int reverse_camera;
+    int back_light;
+    int hazard_lights;    // NEW: 0=OFF, 1=ON (blink after crash)
+    int horn_alarm;       // NEW: 0=OFF, 1=ON (active after crash)
+    int doors_unlocked;   // NEW: 0=LOCKED, 1=UNLOCKED
+    int crash_alert_sent; // NEW: 0=NOT SENT, 1=SENT to server
 }ecu_control;
 
 typedef struct{
