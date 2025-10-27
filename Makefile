@@ -1,7 +1,7 @@
 # Makefile to compile all the C files
 
 CC = gcc
-CFLAGS = -lpthread
+CFLAGS = -lrt -lpthread
 TARGETS = sensor subsystem signal server UI
 
 all: $(TARGETS)
@@ -13,7 +13,7 @@ subsystem: subsystem.c
 	$(CC) subsystem.c -o subsystem $(CFLAGS)
 
 signal: signal.c
-	$(CC) signal.c -o signal
+	$(CC) signal.c -o signal -lrt
 
 server: server.c
 	$(CC) server.c -o server $(CFLAGS)
