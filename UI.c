@@ -18,7 +18,6 @@ void engine_on_screen();
 void engine_off_screen();
 void show_seatbelt_status();
 
-
 ECU *shm_ecu;
 
 void draw_simple_box(int y, int x, int h, int w, const char* title, int title_color_pair) {
@@ -268,21 +267,16 @@ void engine_on_screen(){
         mvprintw(5, COL3_X + 2, "Level: %.2f %%", shm_ecu->sensor.fuel_level); // Fuel Level       
         // Fuel Status
         mvprintw(6, COL3_X + 2, "Status:");
-        if (shm_ecu->control.fuel_status == -1) {
-            attron(COLOR_PAIR(6)|A_BOLD);
-            mvaddwstr(6, COL3_X + 10, L"\u26A0"); // ⚠️
-            printw(" LOW!");
-            attroff(COLOR_PAIR(6)|A_BOLD);
-        } else if (shm_ecu->control.fuel_status == 1) {
+        if (shm_ecu->control.fuel_status == 1) {
             attron(COLOR_PAIR(7)|A_BOLD);
             mvaddwstr(6, COL3_X + 10, L"\u26FD"); // ⛽
-            printw(" FULL");
+            printw(" Normal");
             attroff(COLOR_PAIR(7)|A_BOLD);
         } else {
-            attron(COLOR_PAIR(7)|A_BOLD);
-            mvaddwstr(6, COL3_X + 10, L"\u25CF"); // ⚫
-            printw(" IDLE");
-            attroff(COLOR_PAIR(7)|A_BOLD);
+            attron(COLOR_PAIR(6)|A_BOLD);
+            mvaddwstr(6, COL3_X + 10, L"\u26A0"); // 
+            printw(" Low!");
+            attroff(COLOR_PAIR(6)|A_BOLD);
         }
 
         // 4. GEAR, LIGHTS & CAMERA (COL 1, below)
@@ -290,12 +284,16 @@ void engine_on_screen(){
         mvprintw(10, COL1_X + 2, "Gear Position: %d", shm_ecu->sensor.gear_pos);       
         // Lights Status
         mvprintw(11, COL1_X + 2, "Back Lights:");
+        attron(COLOR_PAIR(7)|A_BOLD);
         mvaddwstr(11, COL1_X + 15, (shm_ecu->control.back_light) ? L"\u2600" : L""); // ☀
         printw(" %s", (shm_ecu->control.back_light) ? "ON" : "OFF");
+        attroff(COLOR_PAIR(7)|A_BOLD);
         // Reverse Camera
         mvprintw(12, COL1_X + 2, "Rev. Camera:");
+        attron(COLOR_PAIR(7)|A_BOLD);
         mvaddwstr(12, COL1_X + 15, (shm_ecu->control.reverse_camera) ? L"\u21AA" : L""); // ↪ 
         printw(" %s", (shm_ecu->control.reverse_camera)?"ON":"OFF");
+        attroff(COLOR_PAIR(7)|A_BOLD);
 
 
         // 5. OBSTACLE DETECTION & ACTION (COL 2, below)
