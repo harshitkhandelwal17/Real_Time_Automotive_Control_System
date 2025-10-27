@@ -52,10 +52,7 @@ void* brake_controller(void* arg) {
         }
 
         if (shm_ecu->sensor.obstacle_detector == 1 || shm_ecu->sensor.engine_speed > 100)
-            shm_ecu->control.brake_status = 1;
-            if(shm_ecu->control.brake_status && shm_ecu->sensor.engine_speed < 40){            	
-            		shm_ecu->sensor.engine_speed -= 20;
-            }	
+            shm_ecu->control.brake_status = 1;	
         else
             shm_ecu->control.brake_status = 0;
 
@@ -114,13 +111,10 @@ void* fuel_controller(void* arg){
             pthread_mutex_unlock(&shm_ecu->lock);
             break;
         }
-        if (shm_ecu->sensor.fuel_level >= 75.0f) {
-    	    shm_ecu->control.fuel_status = 1; // Full
-	} else if (shm_ecu->sensor.fuel_level > 25.0f) {
-	    shm_ecu->control.fuel_status = 0; // Normal
-	} else {
-	    shm_ecu->control.fuel_status = -1;// Low
+        if (shm_ecu->sensor.fuel_level < 25.0f) {
+	    shm_ecu->control.fuel_status = 0; // low
 	}
+	else shm_ecu->control.fuel_status = 1;
         pthread_mutex_unlock(&shm_ecu->lock);
         sleep(3);
     }
