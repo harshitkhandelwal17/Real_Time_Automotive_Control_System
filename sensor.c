@@ -72,6 +72,7 @@ void car_status_handler(int sig){
 int main()
 {
     printf("--- Car Main Process ---\n");
+    pid_t current_pid = getpid();
     printf("Process ID: %d\n",getpid());	
     srand(time(NULL));
     key_t key1 = 9876;	
@@ -89,6 +90,11 @@ int main()
     }
     
     memset(shm_ecu, 0, sizeof(ECU));
+    
+    pthread_mutex_init(&shm_ecu->lock, NULL); // Initialize the mutex
+
+    shm_ecu->pid = current_pid;
+    printf("Car PID %d stored in Shared Memory.\n", current_pid);
     
     signal(SIGUSR1, car_status_handler);
     signal(SIGUSR2, car_status_handler);
@@ -132,7 +138,7 @@ int main()
                 break;
             } 
         }
-        sleep(1); // Check every 1 second (faster response)
+        sleep(1); // Check every 1 second
     }
     
     // Cleanup
