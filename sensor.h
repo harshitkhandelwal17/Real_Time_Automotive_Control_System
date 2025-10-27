@@ -40,6 +40,7 @@ typedef struct{
 	ecu_sensor sensor;
 	ecu_control control;
 	pthread_mutex_t lock;
+    pid_t pid;
 }ECU;
 
 ECU* shm_ecu;
