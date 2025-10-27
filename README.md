@@ -126,9 +126,15 @@ sudo apt-get install libncursesw5-dev
    gcc signal.c -o signal
    ```
 
-3. **Make executable (optional)**
+   or you can compile through Makefile
    ```bash
-   chmod +x sensor subsystem UI server signal
+   make
+   ```
+
+4. **Make executable **
+   ```bash
+   chmod 777 start_all.sh
+   ./start_all.sh
    ```
 
 ## 🎮 Usage
@@ -137,31 +143,33 @@ sudo apt-get install libncursesw5-dev
 ```bash
 ./sensor
 ```
-Note the displayed **Process ID (PID)** - you'll need this for step 5.
+Note the displayed **Process ID (PID)** - you'll need this for step 2.
 
-### Step 2: Start the Controller Subsystem (New Terminal)
-```bash
-./subsystem
-```
-
-### Step 3: Start the Terminal UI (New Terminal)
-```bash
-./UI
-```
-
-### Step 4: Start the Web Server (New Terminal)
-```bash
-./server
-```
-Access the web dashboard at: `http://localhost:8080`
-
-### Step 5: Control Ignition (New Terminal)
+### Step 2: Control Ignition (New Terminal)
 ```bash
 ./signal
 ```
 - Enter the PID from Step 1
 - Press `1` to turn ignition ON
 - Press `0` to turn ignition OFF
+
+### Step 3: Start the Controller Subsystem (New Terminal)
+```bash
+./subsystem
+```
+
+### Step 4: Start the Terminal UI (New Terminal)
+```bash
+./UI
+```
+
+### Step 5: Start the Web Server (New Terminal)
+```bash
+./server
+```
+Access the web dashboard at: `http://localhost`
+
+
 
 ### Emergency Stop
 - In the terminal UI, press `E` for emergency stop
@@ -250,12 +258,10 @@ if (gear_pos == 6) {  // Reverse gear
 
 ### Fuel Controller
 ```c
-if (fuel_level >= 75.0)
-    fuel_status = FULL;
-else if (fuel_level > 25.0)
-    fuel_status = NORMAL;
+if (fuel_level < 25.0f)
+    fuel_status = Low;
 else
-    fuel_status = LOW;
+    fuel_status = Normal;
 ```
 
 ## 🚨 Crash Safety System
@@ -351,23 +357,11 @@ typedef struct {
 - [ ] Advanced crash analytics
 - [ ] Multi-vehicle network simulation
 
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add YourFeature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
-5. Open a Pull Request
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
-
-- **Harshit Khandelwal** - [GitHub](https://github.com/harshitkhandelwal17)
 
 ## 🙏 Acknowledgments
 
