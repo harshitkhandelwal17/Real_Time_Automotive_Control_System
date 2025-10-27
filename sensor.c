@@ -10,7 +10,7 @@
 
 pthread_t engine_thread;
 int thread_created = 0;
-
+int crash_counter = 0;
 void* engine_handler(void* arg)
 {
 	while(shm_ecu->control.ignition){ 
@@ -26,13 +26,20 @@ void* engine_handler(void* arg)
 		} else { // 3 
 		    shm_ecu->sensor.obstacle_detector = 1;
 		}       
-		if (shm_ecu->sensor.engine_speed > 90) {  // Only above 90 RPM
+		/*if (shm_ecu->sensor.engine_speed > 90) {  // Only above 90 RPM
 		    int crash_chance = rand() % 50;
 		    if (crash_chance == 0) {
 			shm_ecu->sensor.crash = 1;
 		    }
 		    else shm_ecu->sensor.crash = 0;
-		}	 
+		}*/
+		shm_ecu->sensor.crash = 0; 
+        	crash_counter++;       
+        	//check if the counter reached the target interval (10 iterations * 3 sec = 30 sec)
+        	if (crash_counter >= 10) {
+        	    shm_ecu->sensor.crash = 1; // Set crash status
+            	    crash_counter = 0;         // Reset counter
+        	}	 
 		pthread_mutex_unlock(&shm_ecu->lock);
 		sleep(3);
 	}
