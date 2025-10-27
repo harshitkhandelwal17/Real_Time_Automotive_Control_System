@@ -1,4 +1,3 @@
-# Real_Time_Automotive_Control_System
 # Real-Time Automotive Control System
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
