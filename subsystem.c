@@ -44,7 +44,7 @@ void* fan_controller(void* arg) {
 
         if (prev_status != shm_ecu->control.fan_status) {
             char log_msg[128];
-            snprintf(log_msg, sizeof(log_msg), "Fan %s (Engine temp: %d°C)",
+            snprintf(log_msg, sizeof(log_msg), "Fan %s (Engine temp: %.2f°C)",
                      shm_ecu->control.fan_status ? "ON" : "OFF",
                      shm_ecu->sensor.engine_temp);
             write_log(log_msg);
