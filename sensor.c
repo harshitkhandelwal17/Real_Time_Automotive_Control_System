@@ -1,4 +1,4 @@
-// sensor.c (Modified)
+// sensor.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,12 +12,11 @@
 
 pthread_t engine_thread;
 int thread_created = 0;
-// Removed crash_counter
 int log_fd = -1;
 
 void write_log(const char* message) {
     if (log_fd == -1) return;
-    
+    // Log file writing
     time_t now = time(NULL);
     char timestamp[64];
     struct tm *t = localtime(&now);
@@ -37,7 +36,7 @@ void* engine_handler(void* arg)
     while(shm_ecu->control.ignition){ 
         pthread_mutex_lock(&shm_ecu->lock);
         
-        // --- Sensor Data Simulation ---
+        // --- Sensor Data Simulation
         shm_ecu->sensor.engine_temp = 80 + rand() % 21;
         shm_ecu->sensor.inside_temp = 20 + rand() % 30;
         shm_ecu->sensor.engine_speed = 50 + rand() % 80;
@@ -52,18 +51,12 @@ void* engine_handler(void* arg)
             write_log("Obstacle detected!");
         }
         
-        // The 'crash' state is now only set by the SIGINT handler.
-        // It is cleared by the subsystem (or main) upon emergency shutdown completion,
-        // but the main loop here will still break/exit if ignition is set to 0.
-        
-        // Removed crash_counter logic here
-        
         char log_msg[256];
         snprintf(log_msg, sizeof(log_msg), 
                      "Sensors: Temp=%f°C, Speed=%fRPM, Gear=%d, Fuel=%.1f%%, Crash=%d",
                      shm_ecu->sensor.engine_temp, shm_ecu->sensor.engine_speed,
                      shm_ecu->sensor.gear_pos, shm_ecu->sensor.fuel_level,
-                     shm_ecu->sensor.crash); // Include crash status in log
+                     shm_ecu->sensor.crash);
         write_log(log_msg);
         
         pthread_mutex_unlock(&shm_ecu->lock);
@@ -74,6 +67,7 @@ void* engine_handler(void* arg)
     pthread_exit(NULL);
 }
 
+// Handler for SIGINT to trigger a Crash
 void crash_handler(int sig){
     if (shm_ecu == NULL) return;
     
@@ -118,7 +112,7 @@ int main()
 {
     printf("--- Car Main Process ---\n");
     
-    // Open log file
+    // Initialization and SHM
     log_fd = open("sensor.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
     if (log_fd == -1) {
         perror("Failed to open log file");
@@ -158,20 +152,20 @@ int main()
     shm_ecu->pid = current_pid;
     printf("Car PID %d stored in Shared Memory.\n", current_pid);
     
-    // Registering SIGUSR1 and SIGUSR2
     signal(SIGUSR1, car_status_handler);
     signal(SIGUSR2, car_status_handler);
     
-    // Registering SIGINT for Crash
-    signal(SIGINT, crash_handler);
+    signal(SIGINT, crash_handler); // Registering SIGINT
 
     printf("Waiting for Ignition ON signal (SIGUSR1)...\n");
-    printf("To trigger a crash, send SIGINT (e.g., 'kill -2 %d' or Ctrl+C if in foreground)\n", current_pid);
+    
+    printf("The crash signal (SIGINT) is handled to initiate emergency shutdown.\n"); 
     write_log("Waiting for ignition ON signal...");
     
     while(1) {
         pthread_mutex_lock(&shm_ecu->lock);
         
+        // Crash detection and cleanup logic 
         if (shm_ecu->sensor.crash == 1) {
             printf("\n[CRASH DETECTED] Initiating emergency shutdown...\n");
             write_log("EMERGENCY: Crash detected - activating all safety systems");
@@ -181,14 +175,14 @@ int main()
             shm_ecu->control.hazard_lights = 1;
             shm_ecu->control.horn_alarm = 1;
             shm_ecu->control.doors_unlocked = 1;
-            shm_ecu->control.ignition = 0;
-            shm_ecu->control.crash_alert_sent = 1; // Not used elsewhere but kept for logic
+            shm_ecu->control.ignition = 0; 
+            shm_ecu->control.crash_alert_sent = 1;
             
             write_log("Safety systems activated: airbag, emergency stop, hazard lights, horn, doors unlocked");
             
             pthread_mutex_unlock(&shm_ecu->lock);
             sleep(1);
-            break;
+            break; 
         }
         
         if (shm_ecu->control.emergency_stop == 1 && shm_ecu->sensor.crash == 0) {
@@ -196,7 +190,7 @@ int main()
             write_log("Manual emergency stop initiated");
             shm_ecu->control.ignition = 0;
             pthread_mutex_unlock(&shm_ecu->lock);
-            break;
+            break; 
         }
         
         pthread_mutex_unlock(&shm_ecu->lock);
@@ -204,16 +198,15 @@ int main()
         if (thread_created == 1 && shm_ecu->control.ignition == 0) {                   
             if (pthread_join(engine_thread, NULL) == 0) {
                 write_log("Engine thread joined successfully");
-                break;
+                break; 
             } 
         }
         sleep(1);
     }
     
     // Cleanup
-    if (thread_created == 1 && pthread_join(engine_thread, NULL) != 0) {
-        // If join failed (e.g., if it was already joined or canceled, though latter not used)
-        // This is a safety measure. The loop's break condition should handle the join.
+    if (thread_created == 1 && shm_ecu->control.ignition == 0) {
+         pthread_join(engine_thread, NULL);
     }
     
     shmdt(shm_ecu);
