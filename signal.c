@@ -2,30 +2,47 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<signal.h>
+#include "sensor.h"
+
+
+pid_t get_car_pid_from_shm() {
+    key_t key = 9876;
+    int shmid = shmget(key, sizeof(ECU), 0666);
+    if (shmid == -1) {
+        perror("shmget failed (Is sensor.c running?)");
+        return -1;
+    }
+    shm_ecu = (ECU*) shmat(shmid, NULL, 0);
+    if (shm_ecu == (ECU*) -1) {
+        perror("shmat failed");
+        return -1;
+    }
+   
+    pid_t car_pid = shm_ecu->pid;
+    
+    shmdt(shm_ecu);
+    
+    return car_pid;
+}
 
 int main(){
     printf("--- Control Panel Process ---\n");
     
-    pid_t car_pid;
+    pid_t car_pid = get_car_pid_from_shm();
     int status;
+       
+    sleep(1);
     
-    printf("Enter Car PID (Process ID): ");
-    if(scanf("%d",&car_pid) != 1 || car_pid <= 0){
-        fprintf(stderr, "Invalid PID entered.\n");
+    if (car_pid <= 0) {
+        fprintf(stderr, "Invalid Car PID from Shared Memory.\n");
         return 1;
     }
     
-    printf("\nPress 1 to turn ON ignition: ");
-    if(scanf("%d",&status) == 1 && status == 1){
-        if(kill(car_pid, SIGUSR1) == 0){
-            printf("Sent SIGUSR1 to PID %d (Ignition ON).\n", car_pid);
-        } else {
-            perror("Error sending SIGUSR1");
-            return 1;
-        }
-    } else {
-        printf("Ignition not turned ON. Exiting.\n");
-        return 0;
+    if(kill(car_pid, SIGUSR1) == 0){
+        printf("\nSent SIGUSR1 to PID %d (Ignition ON).\n", car_pid);
+    } else {       
+        perror("Error sending SIGUSR1");       
+    	return 1;
     }
     
     printf("\nPress 0 to turn OFF ignition and exit: ");
