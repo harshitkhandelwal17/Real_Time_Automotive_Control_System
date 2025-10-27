@@ -18,6 +18,7 @@ void engine_on_screen();
 void engine_off_screen();
 void show_seatbelt_status();
 
+
 ECU *shm_ecu;
 
 void draw_simple_box(int y, int x, int h, int w, const char* title, int title_color_pair) {
