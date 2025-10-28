@@ -19,6 +19,14 @@ void write_log(const char* message) {
     snprintf(timestamp, sizeof(timestamp), "[%04d-%02d-%02d %02d:%02d:%02d] ",
              t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
              t->tm_hour, t->tm_min, t->tm_sec);
+
+    /*time_t now;
+    struct tm* timeinfo;
+    char time_str[30];
+    char buffer[50];
+    time(&now);
+    timeinfo = localtime(&now);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", timeinfo);*/
     
     write(log_fd, timestamp, strlen(timestamp));
     write(log_fd, message, strlen(message));
