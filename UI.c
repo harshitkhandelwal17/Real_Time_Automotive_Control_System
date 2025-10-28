@@ -203,7 +203,22 @@ void crash_screen() {
 void engine_on_screen(){
     
     key_t key = 9876;
+
+	time_t now;
+    struct tm* timeinfo;
+    char time_str[30];
+    char buffer[50];
+    time(&now);
+    timeinfo = localtime(&now);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+	int max_x, max_y;
+    getmaxyx(stdscr, max_y, max_x);
     
+    int time_len = strlen(time_str);
+    int time_x = max_x - time_len - 2;
+    int time_y = 1;
+	
     int shm_id = shmget(key, sizeof(ECU), 0666);
     if (shm_id == -1) {
         endwin();
@@ -242,7 +257,11 @@ void engine_on_screen(){
         mvprintw(2, 48,"ECU SENSOR DASHBOARD");
         mvaddwstr(2, 70, L"\U0001F697"); 
         attroff(COLOR_PAIR(2)|A_BOLD);
-        
+
+		attron(COLOR_PAIR(5) | A_REVERSE | A_BOLD);
+        mvprintw(time_y, time_x, " %s ", time_str);
+        attroff(COLOR_PAIR(5) | A_REVERSE | A_BOLD);
+		
         //ENGINE TEMP & FAN
         draw_simple_box(4, COL1_X, 4, BOX_W, "Engine Temp & Fan", 8);        
         mvprintw(5, COL1_X + 2, "Temp: %.2f °C", shm_ecu->sensor.engine_temp); // Engine Temp            
