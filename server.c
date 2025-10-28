@@ -290,7 +290,7 @@ int main() {
 
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(8080);
+    addr.sin_port = htons(80);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -299,7 +299,7 @@ int main() {
     }
 
     listen(server_fd, 10);
-    printf("Server running at: http://localhost:8080\n");
+    printf("Server running at: http://localhost\n");
 
     while (1) {
         int client_sock = accept(server_fd, NULL, NULL);
