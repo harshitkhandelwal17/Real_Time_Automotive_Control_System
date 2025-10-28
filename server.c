@@ -133,14 +133,13 @@ void send_html_page(int client_sock) {
         "<div class='card'>"
         "<h3>Braking</h3>"
         "<div class='row'>"
-        "<span class='label'>Obstacle Detect</span>"
-        "<span class='badge %s'>%s</span>"
-        "</div>"
-        "<div class='row'>"
         "<span class='label'>Brake Status</span>"
         "<span class='badge %s'>%s</span>"
         "</div>"
-        
+        "<div class='row'>"
+        "<span class='label'>Obstacle</span>"
+        "<span class='badge %s'>%s</span>"
+        "</div>"
         "</div>"
         
         // Card 4: Transmission
@@ -185,15 +184,14 @@ void send_html_page(int client_sock) {
         
         // Fuel Card Data
         shm_ecu->sensor.fuel_level,
-        shm_ecu->control.fuel_status == 1 ? "badge-green" : "badge-red"),
-        shm_ecu->control.fuel_status == 1 ? "NORMAL" :  "LOW" ),
+        shm_ecu->control.fuel_status == 1 ? "badge-green" : (shm_ecu->control.fuel_status == -1 ? "badge-red" : "badge-blue"),
+        shm_ecu->control.fuel_status == 1 ? "FULL" : (shm_ecu->control.fuel_status == -1 ? "LOW" : "NORMAL"),
         
         // Braking Card Data
-        shm_ecu->sensor.obstacle_detector ? "badge-red" : "badge-green",
-        shm_ecu->sensor.obstacle_detector ? "YES" : "NO",
         shm_ecu->control.brake_status ? "badge-red" : "badge-green",
         shm_ecu->control.brake_status ? "APPLIED" : "OFF",
-        
+        shm_ecu->sensor.obstacle_detector ? "badge-red" : "badge-green",
+        shm_ecu->sensor.obstacle_detector ? "YES" : "NO",
         
         // Transmission Card Data
         shm_ecu->sensor.gear_pos,
