@@ -17,12 +17,12 @@ int log_fd = -1;
 void write_log(const char* message) {
     if (log_fd == -1) return;
     // Log file writing
-    time_t now = time(NULL);
+    time_t now;
+    struct tm* timeinfo;
+    time(&now);
     char timestamp[64];
-    struct tm *t = localtime(&now);
-    snprintf(timestamp, sizeof(timestamp), "[%04d-%02d-%02d %02d:%02d:%02d] ",
-             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
-             t->tm_hour, t->tm_min, t->tm_sec);
+    timeinfo = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "[ %Y-%m-%d %H:%M:%S ]", timeinfo);
     
     write(log_fd, timestamp, strlen(timestamp));
     write(log_fd, message, strlen(message));
